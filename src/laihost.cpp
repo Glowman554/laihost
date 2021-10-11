@@ -15,6 +15,8 @@ extern "C" {
 #include <stivale2.h>
 #include <apic/apic.h>
 
+#include <acpispec/tables.h>
+
 extern "C" {
 	void* laihost_map(size_t address, size_t count) {
 		for (int i = 0; i < count / 0x1000; i++) {
@@ -148,10 +150,20 @@ extern "C" {
 		if (rsdp->xsdt_address != 0) {
 			pci::acpi::sdt_header_t* xsdt = (pci::acpi::sdt_header_t*) (((pci::acpi::rsdp2_t*) rsdp_tag->rsdp)->xsdt_address);
 
+			if (memcmp(sig, "DSDT", 4) == 0) {
+				acpi_fadt_t* fadt = (acpi_fadt_t*) pci::acpi::find_table_xsdt(xsdt, (char*) "FACP");
+				return (void*) (uint64_t) fadt->dsdt;
+			}
+
 			result = pci::acpi::find_table_xsdt(xsdt, (char*) sig);
 		} else {
 			pci::acpi::sdt_header_t* rsdt = (pci::acpi::sdt_header_t*) (uint64_t) (((pci::acpi::rsdp2_t*) rsdp_tag->rsdp)->rsdt_address);
 
+			if (memcmp(sig, "DSDT", 4) == 0) {
+				acpi_fadt_t* fadt = (acpi_fadt_t*) pci::acpi::find_table_rsdt(rsdt, (char*) "FACP");
+				return (void*) (uint64_t) fadt->dsdt;
+			}
+			
 			result = pci::acpi::find_table_rsdt(rsdt, (char*) sig);
 		}
 
