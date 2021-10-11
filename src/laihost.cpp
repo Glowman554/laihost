@@ -167,7 +167,7 @@ extern "C" {
 			result = pci::acpi::find_table_rsdt(rsdt, (char*) sig);
 		}
 
-		driver::global_serial_driver->printf("WARNING: search result for %s is %x", sig, result);
+		driver::global_serial_driver->printf("WARNING: search result for %s is %x\n", sig, result);
 
 		return result;
 	}
