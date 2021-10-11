@@ -6,7 +6,7 @@ QEMUFLAGS_BIOS = -machine q35 -smp 4 -drive file=foxos.img -m 1G -cpu qemu64 -se
 
 FOX_GCC_PATH=/usr/local/foxos-x86_64_elf_gcc
 
-build: kernel-headers
+build: kernel-headers src/lai
 	@mkdir $(BUILDDIR) -p
 	@mkdir $(OBJDIR) -p
 
@@ -34,3 +34,6 @@ kernel-headers:
 
 foxos.img:
 	wget https://github.com/TheUltimateFoxOS/FoxOS/releases/download/latest/foxos.img -O foxos.img
+
+src/lai:	
+	git clone https://github.com/managarm/lai.git src/lai

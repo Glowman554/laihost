@@ -1,8 +1,14 @@
 #include <kmod.h>
 #include <renderer/font_renderer.h>
 
+extern "C" {
+	#include <lai/core.h>
+	#include <lai/helpers/sci.h>
+}
+
 void init() {
-	renderer::global_font_renderer->printf("%fHello, world!%r\n", 0xff00ff00);
+	lai_enable_tracing(LAI_TRACE_OP | LAI_TRACE_IO);
+	lai_create_namespace();
 }
 
 define_module("hello", init);
