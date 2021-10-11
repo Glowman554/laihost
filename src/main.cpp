@@ -11,4 +11,4 @@ void init() {
 	lai_create_namespace();
 }
 
-define_module("hello", init);
+define_module("laihost", init);
