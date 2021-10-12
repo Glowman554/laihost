@@ -10,6 +10,8 @@ extern "C" {
 	#include <lai/core.h>
 	#include <lai/helpers/sci.h>
 	#include <acpispec/tables.h>
+	#include <acpispec/resources.h>
+	#include <lai/drivers/ec.h>
 }
 
 int acpi_get_sci_irq(void) {
@@ -40,13 +42,16 @@ void init() {
 	lai_set_acpi_revision(rsdp->revision);
 
 	//lai_enable_tracing(LAI_TRACE_OP | LAI_TRACE_IO);
-	lai_create_namespace();
 
 	int irq = acpi_get_sci_irq();
 
 	driver::global_serial_driver->printf("SCI IRQ: %d\n", irq);
 
 	SciHandler* handler = new SciHandler(irq + 0x20);
+
+	lai_create_namespace();
+
+	lai_enable_acpi(0);
 }
 
 define_module("laihost", init);

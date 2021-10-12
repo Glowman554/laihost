@@ -3,9 +3,9 @@ extern "C" {
 }
 
 #include <paging/page_table_manager.h>
+#include <paging/page_frame_allocator.h>
 #include <driver/serial.h>
 #include <interrupts/panic.h>
-#include <memory/heap.h>
 #include <port.h>
 #include <pci/pci.h>
 
@@ -14,6 +14,8 @@ extern "C" {
 
 #include <stivale2.h>
 #include <apic/apic.h>
+
+#include <acpi.h>
 
 #include <acpispec/tables.h>
 
@@ -54,15 +56,27 @@ extern "C" {
 	}
 
 	void* laihost_malloc(size_t size) {
-		return malloc(size);
+		return global_allocator.request_pages(size / 0x1000 + 1);
 	}
 
 	void* laihost_realloc(void *oldptr, size_t newsize, size_t oldsize) {
-		return realloc(oldptr, oldsize, newsize);
+		if (newsize == 0) {
+				laihost_free(oldptr, oldsize);
+				return nullptr;
+		} else if (!oldptr) {
+			return laihost_malloc(newsize);
+			} else if (newsize <= oldsize) {
+				return oldptr;
+			} else {
+			void* newptr = laihost_malloc(newsize);
+			memcpy(newptr, oldptr, oldsize);
+
+			return newptr;
+		}
 	}
 
 	void laihost_free(void *ptr, size_t size) {
-		free(ptr);
+		global_allocator.free_pages(ptr, size / 0x1000 + 1);
 	}
 
 	void laihost_outb(uint16_t port, uint8_t val) {
@@ -90,27 +104,27 @@ extern "C" {
 	}
 
 	void laihost_pci_writeb(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t fun, uint16_t offset, uint8_t val) {
-		laihost_panic("laihost_pci_writeb not implemented!");
+		pci::pci_writeb(bus, slot, fun, offset, val);
 	}
 
 	void laihost_pci_writew(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t fun, uint16_t offset, uint16_t val) {
-		laihost_panic("laihost_pci_writew not implemented!");
+		pci::pci_writew(bus, slot, fun, offset, val);
 	}
 
 	void laihost_pci_writed(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t fun, uint16_t offset, uint32_t val) {
-		pci::pci_write(bus, slot, fun, offset, val);
+		pci::pci_writed(bus, slot, fun, offset, val);
 	}
 
 	uint8_t laihost_pci_readb(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t fun, uint16_t offset) {
-		laihost_panic("laihost_pci_readb not implemented!");
+		return pci::pci_readb(bus, slot, fun, offset);
 	}
 
 	uint16_t laihost_pci_readw(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t fun, uint16_t offset) {
-		laihost_panic("laihost_pci_readw not implemented!");
+		return pci::pci_readw(bus, slot, fun, offset);
 	}
 
 	uint32_t laihost_pci_readd(uint16_t seg, uint8_t bus, uint8_t slot, uint8_t fun, uint16_t offset) {
-		return pci::pci_read(bus, slot, fun, offset);
+		return pci::pci_readd(bus, slot, fun, offset);
 	}
 
 
@@ -155,7 +169,7 @@ extern "C" {
 				return (void*) (uint64_t) fadt->dsdt;
 			}
 
-			result = pci::acpi::find_table_xsdt(xsdt, (char*) sig);
+			result = find_table_xsdt(xsdt, (char*) sig, index);
 		} else {
 			pci::acpi::sdt_header_t* rsdt = (pci::acpi::sdt_header_t*) (uint64_t) (((pci::acpi::rsdp2_t*) rsdp_tag->rsdp)->rsdt_address);
 
@@ -164,10 +178,10 @@ extern "C" {
 				return (void*) (uint64_t) fadt->dsdt;
 			}
 			
-			result = pci::acpi::find_table_rsdt(rsdt, (char*) sig);
+			result = find_table_rsdt(rsdt, (char*) sig, index);
 		}
 
-		driver::global_serial_driver->printf("WARNING: search result for %s is %x\n", sig, result);
+		driver::global_serial_driver->printf("WARNING: search result for %s:%d is %x\n", sig, index, result);
 
 		return result;
 	}
