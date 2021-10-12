@@ -1,6 +1,13 @@
-bin
-lib
-kernel-headers
+bin/
+lib/
+kernel-headers/
+
 dump.dat
 foxos.img
-src/lai
+
+#Mac files
+._*
+.DS_Store
+._DS_Strore
+
+src/lai/
